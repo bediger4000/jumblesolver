@@ -50,18 +50,18 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html")
 		x := strings.TrimSpace(r.FormValue("word"))
 		fmt.Printf("Form word value:\n%s\n", x)
+		text := ""
 
 		if _, alphabetized, valid := dictionary.Alphabetizer([]byte(x)); valid {
 			if matches, ok := s.FindWords[alphabetized]; ok {
 				spacer := ""
-				text := ""
 				for _, word := range matches {
 					text += fmt.Sprintf("%s%s", spacer, word)
 					spacer = ", "
 				}
-				w.Write([]byte(fmt.Sprintf(formHTML, text)))
 			}
 		}
+		w.Write([]byte(fmt.Sprintf(formHTML, text)))
 
 	}
 }
