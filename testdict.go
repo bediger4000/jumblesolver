@@ -2,18 +2,24 @@ package main
 
 import (
 	"jumble/dictionary"
+	"time"
 
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 )
 
 func main() {
-	dict, err := dictionary.Build(os.Args[1])
+	buffer, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		log.Fatalf("Problem with %q: %v\n", os.Args[1], err)
+		log.Fatalf("Problem reading %q: %vn", os.Args[1], err)
 	}
-	fmt.Printf("%d words in dictionary\n", len(dict))
+	before := time.Now()
+	dict := dictionary.Build(buffer)
+	m1, m2 := dict.Dedupe()
+	fmt.Printf("%d words in dictionary in %v\n", len(dict), time.Since(before))
+	fmt.Printf("Max before dedupe %d, max after %d\n", m1, m2)
 	if len(os.Args) > 2 {
 		if _, alphabetized, valid := dictionary.Alphabetizer([]byte(os.Args[2])); valid {
 			if matches, ok := dict[alphabetized]; ok {
