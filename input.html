@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="UTF-8">
+	<script language="javascript" type="text/javascript">
+		function wordcountchange() {
+			var Nwords = document.getElementById("wordcount").value;
+			var worddiv = document.getElementById("worddiv");
+			var generatedHTML = "";
+			for (var i = 0; i < Nwords; ++i) {
+				generatedHTML += generateWordHTML(i);
+			}
+			worddiv.innerHTML = wordsDropDown(Nwords);
+			worddiv.innerHTML += generatedHTML;
+		}
+		function generateWordHTML(wordNumber) {
+			var generated = '<table border="1">';
+			// The characters of the word
+			// <td><input type="text" id="w0c0" name="w0c0" size="1" /></td>
+			var wordID = 'w'+wordNumber+'c';
+			generated += '<tr>';
+			for (var i = 0; i < 5; ++i) {
+				var charID = wordID + i;
+				var prevChar = document.getElementById(charID);
+				var prevCharValue = '';
+				if (prevChar != null) {
+					prevCharValue = prevChar.value;
+				}
+				generated += '<td><input type="text" size="1" name="'+charID+'" id="'+charID+'" value="' +prevCharValue + '" /></td>';
+			}
+
+			// The marked characters of the word, to use to solve the jumble
+			generated += '</tr><tr>';
+			for (var i = 0; i < 5; ++i) {
+				var markID = wordID + i + 'forward';
+				generated += '<td><input type="checkbox" name="'
+					+markID+'" id="'+markID+'" '
+				var prevMark = document.getElementById(markID);
+				if (prevMark != null && prevMark.checked) {
+						generated += 'checked ';
+				}
+				generated += '></td>';
+			}
+			generated += '</tr>';
+
+
+			// The use-as-is flag, for words the human knows for a fact are part
+			// of the solution.
+			var asIsID = 'w' + wordNumber + 'asis';
+			var prevAsIs = document.getElementById(asIsID);
+			generated += '<tr><td colspan="5">Use as-is: <input type="checkbox" name="'+asIsID+'" id="' +asIsID+'" ';
+			if (prevAsIs != null && prevAsIs.checked) {
+				generated += 'checked ';
+			}
+			generated += '></td></tr></table>';
+			return generated;
+		}
+		function wordsDropDown(selected) {
+				var html = '<table border="0">';
+				html += '<tr><td>Number of words:';
+				html += '	<select name="wordcount" id="wordcount" onchange="wordcountchange()">';
+				for (var i = 1; i <= 5; ++i) {
+					html += '<option value="'+i+'"'
+					if (i == selected) {
+						html += ' selected="true" ';
+					}
+					html += '>'+i+'</option>';
+				}
+				html += '</select>';
+				html += '</td></tr>';
+				return html;
+		}
+	</script>
+	</head>
+	<body>
+	<form name="f" method="post" action="http://localhost:8012/jumble">
+
+	<div id="worddiv" >
+		<table border="0">
+		<tr><td>Number of words:
+			<select name="wordcount" id="wordcount" onchange="wordcountchange()">
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+			</select>
+		</td></tr>
+
+	<table border="1">
+		<tr>
+			<td><input type="text" id="w0c0" name="w0c0" size="1" /></td>
+			<td><input type="text" id="w0c1" name="w0c1" size="1" /></td>
+			<td><input type="text" id="w0c2" name="w0c2" size="1" /></td>
+			<td><input type="text" id="w0c3" name="w0c3" size="1" /></td>
+			<td><input type="text" id="w0c4" name="w0c4" size="1" /></td>
+		</tr>
+		<tr>
+			<td><input type="checkbox" id="w0c0forward" name="w0c0forward" /></td>
+			<td><input type="checkbox" id="w0c1forward" name="w0c1forward" /></td>
+			<td><input type="checkbox" id="w0c2forward" name="w0c2forward" /></td>
+			<td><input type="checkbox" id="w0c3forward" name="w0c3forward" /></td>
+			<td><input type="checkbox" id="w0c4forward" name="w0c4forward" /></td>
+		</tr>
+
+		<tr>
+			<td colspan="5">Use as-is: <input type="checkbox" name="w0asis"></td>
+		</tr>
+	</table>
+	</div>
+	<input type="submit" />
+	</form>
+	</body>
+</html>
