@@ -12,6 +12,7 @@
 			}
 			worddiv.innerHTML = wordsDropDown(Nwords);
 			worddiv.innerHTML += generatedHTML;
+			document.f.words.value = Nwords;
 		}
 		function generateWordHTML(wordNumber) {
 			var generated = '<table border="1">';
@@ -74,6 +75,8 @@
 	</head>
 	<body>
 	<form name="f" method="post" action="http://localhost:8012/jumble">
+
+	<input type="hidden" name="words" id="words" value="1"/>
 
 	<div id="worddiv" >
 		<table border="0">

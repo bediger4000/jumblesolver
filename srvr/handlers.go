@@ -158,7 +158,7 @@ func readRequestData(r *http.Request) ([]solver.Word, error) {
 }
 
 func rewriteHTML(words []solver.Word, w http.ResponseWriter) {
-	w.Write([]byte(headerHTML))
+	w.Write([]byte(fmt.Sprintf(headerHTML, len(words))))
 
 	for wordNumber, word := range words {
 		w.Write([]byte(`	<table border="1">`))
@@ -271,10 +271,15 @@ var headerHTML string = `<!DOCTYPE html>
 				html += '</td></tr>';
 				return html;
 		}
+		function setwordcount() {
+			document.getElementById("wordcount").value = document.f.words.value;
+		}
 	</script>
 	</head>
-	<body>
+	<body onload="setwordcount()" >
 	<form name="f" method="post" action="http://localhost:8012/jumble">
+
+	<input type="hidden" name="words" id="words" value="%d" />
 
 	<div id="worddiv" >
 		<table border="0">
