@@ -10,4 +10,5 @@ type Srvr struct {
 	// handler function needs to know - common info
 	FindWords dictionary.Dictionary
 	Router    *http.ServeMux
+	Debug     bool
 }
