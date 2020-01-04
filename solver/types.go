@@ -1,7 +1,7 @@
 package solver
 
 type Word struct {
-	Word string
+	Word        []rune
 	MarkedChars []int
-	AsIs bool
+	AsIs        bool
 }

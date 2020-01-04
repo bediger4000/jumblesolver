@@ -83,12 +83,12 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 		var words []solver.Word
 		for wordNumber := 0; wordNumber < wordCount; wordNumber++ {
 			var marks []int
-			var word string
+			var word []rune
 			for charNumber := 0; charNumber < 10; charNumber++ {
 				wordCode := fmt.Sprintf("w%dc%d", wordNumber, charNumber)
 				wordChar := strings.TrimSpace(r.FormValue(wordCode))
 				if wordChar != "" {
-					word += wordChar
+					word = append(word, []rune(wordChar)[0])
 				}
 
 				markCode := wordCode + "forward"
@@ -114,7 +114,7 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 		w.Write([]byte(explainHTML))
 		for idx, word := range words {
 			w.Write([]byte(fmt.Sprintf("<h1>Word %d</h1>\n", idx)))
-			w.Write([]byte(fmt.Sprintf("<p>%q</p>\n", word.Word)))
+			w.Write([]byte(fmt.Sprintf("<p>%q</p>\n", string(word.Word))))
 			w.Write([]byte(fmt.Sprintf("<p>Marks: %v</p>\n", word.MarkedChars)))
 			w.Write([]byte(fmt.Sprintf("<p>As-Is: %v</p>\n", word.AsIs)))
 		}
