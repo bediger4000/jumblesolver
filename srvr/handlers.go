@@ -83,7 +83,9 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 			return
 		}
 
-		rewriteHTML(words, w)
+		guesses := solver.LookupWords(s.FindWords, words)
+
+		rewriteHTML(words, guesses, w)
 	}
 }
 
@@ -97,7 +99,7 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 		fmt.Printf("Form word value:\n%s\n", x)
 		text := ""
 
-		if _, alphabetized, valid := dictionary.Alphabetizer([]byte(x)); valid {
+		if _, alphabetized, valid := dictionary.Alphabetizer([]rune(x)); valid {
 			if matches, ok := s.FindWords[alphabetized]; ok {
 				spacer := ""
 				for _, word := range matches {
@@ -157,7 +159,7 @@ func readRequestData(r *http.Request) ([]solver.Word, error) {
 	return words, nil
 }
 
-func rewriteHTML(words []solver.Word, w http.ResponseWriter) {
+func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(headerHTML, len(words))))
 
 	for wordNumber, word := range words {
@@ -192,6 +194,9 @@ func rewriteHTML(words []solver.Word, w http.ResponseWriter) {
 			checked = "checked"
 		}
 		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word), wordNumber, checked)))
+
+		// words that might match
+		w.Write([]byte(fmt.Sprintf("\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))))
 
 		w.Write([]byte(`	</table>`))
 	}
