@@ -16,7 +16,7 @@ func Build(buffer []byte) Dictionary {
 	dict := Dictionary(make(map[string][]string))
 	lines := bytes.Fields(buffer)
 	for _, word := range lines {
-		if w, a, saveit := Alphabetizer(word); saveit {
+		if w, a, saveit := Alphabetizer([]rune(string(word))); saveit {
 			if _, ok := dict[a]; ok {
 				dict[a] = append(dict[a], string(w))
 				continue
@@ -64,12 +64,13 @@ func (r RuneArray) Less(i, j int) bool { return r[i] < r[j] }
 // a lowercase word, the word with all runes alphabetized,
 // a bool indicating whether to save this word or not.
 // Don't save words with apostrophes, commas, etc in them.
-func Alphabetizer(rawWord []byte) (string, string, bool) {
-	word := strings.ToLower(string(rawWord))
-	runes := []rune(word)
-	if strings.ContainsAny(word, `'"!,:;.?/`) {
+func Alphabetizer(runes []rune) (string, string, bool) {
+	word := strings.ToLower(string(runes))
+	if strings.ContainsAny(word, `!@#$%^&*()-_+={[}]:;"'<,>.?/`) {
 		return "", "", false
 	}
-	sort.Sort(RuneArray(runes))
-	return word, string(runes), true
+	alphabetized := make([]rune, len(runes))
+	copy(alphabetized, runes)
+	sort.Sort(RuneArray(alphabetized))
+	return word, string(alphabetized), true
 }
