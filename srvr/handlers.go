@@ -30,7 +30,8 @@ var solveHTML string = `
 <body>
 <h1>Solve it</h1>
 <form name="f" method="post" >
-</form>
+`
+var solveHTML2 string = `</form>
 </body>
 </html>
 `
@@ -84,7 +85,21 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 			fmt.Printf("Enter handleSolve closure\n")
 			defer fmt.Printf("Exit handleSolve closure\n")
 		}
+
+		w.Header().Set("Content-Type", "text/html")
+
+		alternates, err := readSolveData(s.FindWords, r)
+
+		if err != nil {
+			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
+			return
+		}
+
 		w.Write([]byte(solveHTML))
+		for _, alternate := range alternates {
+			w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", string(alternate))))
+		}
+		w.Write([]byte(solveHTML2))
 	}
 }
 
@@ -132,6 +147,57 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 		w.Write([]byte(fmt.Sprintf(formHTML, text)))
 
 	}
+}
+
+// readSolveData does some stuff
+func readSolveData(dict dictionary.Dictionary, r *http.Request) ([][]rune, error) {
+	words, err := readRequestData(r)
+	if err != nil {
+		return nil, fmt.Errorf("reading unjumbled words: %v\n", err)
+	}
+
+	// Find out how many marked characters exist in the jumbled words
+	markedCount := 0
+	for _, word := range words {
+		markedCount += len(word.MarkedChars)
+	}
+
+	// The solution has markedCount number of letters in it.
+	// Each of those markedCount may have more than 1 alternative.
+
+	matches := solver.LookupWords(dict, words)
+
+	jumbledChars := make([][]rune, markedCount)
+	jumbledCharNum := 0
+
+	for wordNum, word := range words {
+		for _, markNum := range word.MarkedChars {
+			if word.AsIs {
+				jumbledChars[jumbledCharNum] = []rune{word.Word[markNum]}
+				jumbledCharNum++
+				continue
+			}
+			matching := matches[wordNum]
+			var matchChars []rune
+			for _, match := range matching {
+				rm := []rune(match)
+				foundit := false
+				for _, alreadyPresent := range matchChars {
+					if alreadyPresent == rm[markNum] {
+						foundit = true
+						break
+					}
+				}
+				if !foundit {
+					matchChars = append(matchChars, rm[markNum])
+				}
+			}
+			jumbledChars[jumbledCharNum] = matchChars
+			jumbledCharNum++
+		}
+	}
+
+	return jumbledChars, nil
 }
 
 func readRequestData(r *http.Request) ([]solver.Word, error) {
