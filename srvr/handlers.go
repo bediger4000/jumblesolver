@@ -23,6 +23,18 @@ var indexHTML string = `
 </html>
 `
 
+var solveHTML string = `
+<html>
+<head>
+</head>
+<body>
+<h1>Solve it</h1>
+<form name="f" method="post" >
+</form>
+</body>
+</html>
+`
+
 var formHTML string = `
 <html>
 <head>
@@ -64,6 +76,15 @@ func (s *Srvr) handleIndex() http.HandlerFunc {
 			defer fmt.Printf("Exit handleIndex closure\n")
 		}
 		w.Write([]byte(indexHTML))
+	}
+}
+func (s *Srvr) handleSolve() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.Debug {
+			fmt.Printf("Enter handleSolve closure\n")
+			defer fmt.Printf("Exit handleSolve closure\n")
+		}
+		w.Write([]byte(solveHTML))
 	}
 }
 
@@ -114,6 +135,10 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 }
 
 func readRequestData(r *http.Request) ([]solver.Word, error) {
+	if r.FormValue("wordcount") == "" {
+		return []solver.Word{}, nil
+	}
+
 	wordCount, err := strconv.Atoi(strings.TrimSpace(r.FormValue("wordcount")))
 	if err != nil {
 		return nil, fmt.Errorf("finding value of wordcount: %v\n", err)
@@ -160,6 +185,27 @@ func readRequestData(r *http.Request) ([]solver.Word, error) {
 }
 
 func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter) {
+
+	// Called without any POST data
+	if len(words) == 0 {
+		w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
+		w.Write([]byte(`	<table border="1">`))
+		w.Write([]byte("		<tr>\n"))
+		for charNumber := 0; charNumber < 5; charNumber++ {
+			w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber)))
+		}
+		w.Write([]byte("		</tr>\n"))
+		w.Write([]byte("		<tr>\n"))
+		for charNumber := 0; charNumber < 5; charNumber++ {
+			w.Write([]byte(fmt.Sprintf(emptyMarkHTML, charNumber, charNumber)))
+		}
+		w.Write([]byte(fmt.Sprintf(asIsHTML, 5, 0, 0, "")))
+		w.Write([]byte("		</tr>\n"))
+		w.Write([]byte(`	</table>`))
+		w.Write([]byte(footerHTML))
+		return
+	}
+
 	w.Write([]byte(fmt.Sprintf(headerHTML, len(words))))
 
 	for wordNumber, word := range words {
@@ -193,7 +239,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		if word.AsIs {
 			checked = "checked"
 		}
-		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word), wordNumber, checked)))
+		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word), wordNumber, wordNumber, checked)))
 
 		// words that might match
 		w.Write([]byte(fmt.Sprintf("\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))))
@@ -225,6 +271,7 @@ var headerHTML string = `<!DOCTYPE html>
 			// <td><input type="text" id="w0c0" name="w0c0" size="1" /></td>
 			var wordID = 'w'+wordNumber+'c';
 			generated += '<tr>';
+			var charCount = 0;
 			for (var i = 0; i < 5; ++i) {
 				var charID = wordID + i;
 				var prevChar = document.getElementById(charID);
@@ -232,12 +279,13 @@ var headerHTML string = `<!DOCTYPE html>
 				if (prevChar != null) {
 					prevCharValue = prevChar.value;
 				}
+				++charCount
 				generated += '<td><input type="text" size="1" name="'+charID+'" id="'+charID+'" value="' +prevCharValue + '" /></td>';
 			}
 
 			// The marked characters of the word, to use to solve the jumble
 			generated += '</tr><tr>';
-			for (var i = 0; i < 5; ++i) {
+			for (var i = 0; i < charCount; ++i) {
 				var markID = wordID + i + 'forward';
 				generated += '<td><input type="checkbox" name="'
 					+markID+'" id="'+markID+'" '
@@ -253,12 +301,15 @@ var headerHTML string = `<!DOCTYPE html>
 			// The use-as-is flag, for words the human knows for a fact are part
 			// of the solution.
 			var asIsID = 'w' + wordNumber + 'asis';
+			generated += '<tr><td colspan="'+charCount+'">Use as-is: <input type="checkbox" name="'+asIsID+'" id="' +asIsID+'" ';
+
 			var prevAsIs = document.getElementById(asIsID);
-			generated += '<tr><td colspan="5">Use as-is: <input type="checkbox" name="'+asIsID+'" id="' +asIsID+'" ';
 			if (prevAsIs != null && prevAsIs.checked) {
 				generated += 'checked ';
 			}
-			generated += '></td></tr></table>';
+
+			generated += '/></td></tr></table>';
+
 			return generated;
 		}
 		function wordsDropDown(selected) {
@@ -278,6 +329,14 @@ var headerHTML string = `<!DOCTYPE html>
 		}
 		function setwordcount() {
 			document.getElementById("wordcount").value = document.f.words.value;
+		}
+		function submitjumble() {
+			document.f.action = "/jumble";
+			document.f.submit();
+		}
+		function submitsolve() {
+			document.f.action = "/solve";
+			document.f.submit();
 		}
 	</script>
 	</head>
@@ -303,18 +362,24 @@ var headerHTML string = `<!DOCTYPE html>
 
 var footerHTML string = `</table>
 	</div>
-	<input type="submit" />
+	<input type="button" value="Unjumble Words" onclick="submitjumble()" />
+	<br />
+	<input type="submit" value="Solve" onclick="submitsolve()" />
 	</form>
 	</body>
 </html>
 `
 var asIsHTML string = `
 		<tr>
-				<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" %s></td>
+				<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" id="w%dasis" %s></td>
 		</tr>
 `
 
 var characterHTML string = `			<td><input type="text" id="w%dc%d" name="w%dc%d" size="1" value="%c" /></td>
 `
+var emptyCharacterHTML string = `			<td><input type="text" id="w0c%d" name="w0c%d" size="1" /></td>
+`
 var markHTML string = `			<td><input type="checkbox" id="w%dc%dforward" name="w%dc%dforward" %s /></td>
+`
+var emptyMarkHTML string = `			<td><input type="checkbox" id="w0c%dforward" name="w0c%dforward" /></td>
 `
