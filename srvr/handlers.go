@@ -79,6 +79,7 @@ func (s *Srvr) handleIndex() http.HandlerFunc {
 		w.Write([]byte(indexHTML))
 	}
 }
+
 func (s *Srvr) handleSolve() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.Debug {
@@ -88,11 +89,17 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		alternates, err := readSolveData(s.FindWords, r)
+		alternates, err := readSolveData(s.FindWords, r, s.Debug)
 
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
 			return
+		}
+
+		if s.Debug {
+			for i, alternate := range alternates {
+				fmt.Printf("Solution letter %d: %s\n", i, string(alternate))
+			}
 		}
 
 		w.Write([]byte(solveHTML))
@@ -100,6 +107,7 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 			w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", string(alternate))))
 		}
 		w.Write([]byte(solveHTML2))
+
 	}
 }
 
@@ -112,7 +120,7 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		words, err := readRequestData(r)
+		words, err := readRequestData(r, s.Debug)
 
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
@@ -150,16 +158,25 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 }
 
 // readSolveData does some stuff
-func readSolveData(dict dictionary.Dictionary, r *http.Request) ([][]rune, error) {
-	words, err := readRequestData(r)
+func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][]rune, error) {
+	words, err := readRequestData(r, debug)
 	if err != nil {
 		return nil, fmt.Errorf("reading unjumbled words: %v\n", err)
+	}
+	if debug {
+		fmt.Printf("%d jumbled words\n", len(words))
+		for i, w := range words {
+			fmt.Printf("\tword %d: %q, use as-is: %v\n", i, string(w.Word), w.AsIs)
+		}
 	}
 
 	// Find out how many marked characters exist in the jumbled words
 	markedCount := 0
 	for _, word := range words {
 		markedCount += len(word.MarkedChars)
+	}
+	if debug {
+		fmt.Printf("%d marked solution letters total\n", markedCount)
 	}
 
 	// The solution has markedCount number of letters in it.
@@ -200,8 +217,11 @@ func readSolveData(dict dictionary.Dictionary, r *http.Request) ([][]rune, error
 	return jumbledChars, nil
 }
 
-func readRequestData(r *http.Request) ([]solver.Word, error) {
+func readRequestData(r *http.Request, debug bool) ([]solver.Word, error) {
 	if r.FormValue("wordcount") == "" {
+		if debug {
+			fmt.Printf("form input wordcount has zero-length string value\n")
+		}
 		return []solver.Word{}, nil
 	}
 
@@ -210,24 +230,36 @@ func readRequestData(r *http.Request) ([]solver.Word, error) {
 		return nil, fmt.Errorf("finding value of wordcount: %v\n", err)
 	}
 
+	if debug {
+		fmt.Printf("wordcount %d\n", wordCount)
+	}
+
 	var words []solver.Word
 
 	for wordNumber := 0; wordNumber < wordCount; wordNumber++ {
+		if debug {
+			fmt.Printf("Jumbled word %d:\n", wordNumber)
+		}
 		var marks []int
 		var word []rune
-		for charNumber := 0; charNumber < 10; charNumber++ {
+		for charNumber := 0; true; charNumber++ {
 			wordCode := fmt.Sprintf("w%dc%d", wordNumber, charNumber)
 			wordChar := strings.TrimSpace(r.FormValue(wordCode))
 			if wordChar != "" {
+				if debug {
+					fmt.Printf("\tletter %d, field name %q: '%c'\n", charNumber, wordCode, []rune(r.FormValue(wordCode))[0])
+				}
 				word = append(word, []rune(wordChar)[0])
-			}
 
-			markCode := wordCode + "forward"
-			m := strings.TrimSpace(r.FormValue(markCode))
-			if m == "on" {
-				marks = append(marks, charNumber)
+				markCode := wordCode + "forward"
+				m := strings.TrimSpace(r.FormValue(markCode))
+				fmt.Printf("\tletter %d, mark name %q: %q\n", charNumber, markCode, r.FormValue(markCode))
+				if m == "on" {
+					marks = append(marks, charNumber)
+				}
+				continue
 			}
-
+			break
 		}
 
 		asIsCode := fmt.Sprintf("w%dasis", wordNumber)
@@ -235,6 +267,9 @@ func readRequestData(r *http.Request) ([]solver.Word, error) {
 		asIs := false
 		if aic == "on" {
 			asIs = true
+		}
+		if debug {
+			fmt.Printf("Use-as-is code %q, value %v\n", asIsCode, asIs)
 		}
 
 		if len(word) > 0 {
@@ -254,21 +289,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 
 	// Called without any POST data
 	if len(words) == 0 {
-		w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
-		w.Write([]byte(`	<table border="1">`))
-		w.Write([]byte("		<tr>\n"))
-		for charNumber := 0; charNumber < 5; charNumber++ {
-			w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber)))
-		}
-		w.Write([]byte("		</tr>\n"))
-		w.Write([]byte("		<tr>\n"))
-		for charNumber := 0; charNumber < 5; charNumber++ {
-			w.Write([]byte(fmt.Sprintf(emptyMarkHTML, charNumber, charNumber)))
-		}
-		w.Write([]byte(fmt.Sprintf(asIsHTML, 5, 0, 0, "")))
-		w.Write([]byte("		</tr>\n"))
-		w.Write([]byte(`	</table>`))
-		w.Write([]byte(footerHTML))
+		noWordsHTML(w)
 		return
 	}
 
@@ -278,14 +299,14 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		w.Write([]byte(`	<table border="1">`))
 
 		// Characters in word
-		w.Write([]byte("		<tr>\n"))
+		w.Write([]byte(fmt.Sprintf("		<tr id='w%drow'>\n", wordNumber)))
 		for charNumber, char := range word.Word {
 			w.Write([]byte(fmt.Sprintf(characterHTML, wordNumber, charNumber, wordNumber, charNumber, char)))
 		}
 		w.Write([]byte("		</tr>\n"))
 
 		// Marks for characters to carry forward
-		w.Write([]byte("		<tr>\n"))
+		w.Write([]byte(fmt.Sprintf("		<tr id='w%dmarks'>\n", wordNumber)))
 		for charNumber, _ := range word.Word {
 			checked := ""
 
@@ -305,7 +326,8 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		if word.AsIs {
 			checked = "checked"
 		}
-		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word), wordNumber, wordNumber, checked)))
+		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word)-1, wordNumber, wordNumber, checked)))
+		w.Write([]byte(fmt.Sprintf(addLetterHTML, wordNumber, wordNumber)))
 
 		// words that might match
 		w.Write([]byte(fmt.Sprintf("\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))))
@@ -313,6 +335,24 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		w.Write([]byte(`	</table>`))
 	}
 
+	w.Write([]byte(footerHTML))
+}
+
+func noWordsHTML(w http.ResponseWriter) {
+	w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
+	w.Write([]byte(`	<table border="1">`))
+	w.Write([]byte("		<tr>\n"))
+	for charNumber := 0; charNumber < 5; charNumber++ {
+		w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber)))
+	}
+	w.Write([]byte("		</tr>\n"))
+	w.Write([]byte("		<tr>\n"))
+	for charNumber := 0; charNumber < 5; charNumber++ {
+		w.Write([]byte(fmt.Sprintf(emptyMarkHTML, charNumber, charNumber)))
+	}
+	w.Write([]byte(fmt.Sprintf(asIsHTML, 5, 0, 0, "")))
+	w.Write([]byte("		</tr>\n"))
+	w.Write([]byte(`	</table>`))
 	w.Write([]byte(footerHTML))
 }
 
@@ -393,6 +433,18 @@ var headerHTML string = `<!DOCTYPE html>
 				html += '</td></tr>';
 				return html;
 		}
+		function addletter(wordno) {
+			var row = document.getElementById("w"+wordno+"row");
+			var name = "w"+wordno+"c"+row.childElementCount;
+			var newdatum = row.insertCell(-1);
+			newdatum.innerHTML = '<input type="text" name="'+name+'" id="'+name+'" size="1" />';
+
+			// The corresponding "carry this character forward" mark.
+			var markrow = document.getElementById("w"+wordno+"marks");
+			var markdatum = markrow.insertCell(-1);
+			markdatum.innerHTML = '<input type="checkbox" id="'+name+'forward" name="'+name+'forward" />';
+		}
+
 		function setwordcount() {
 			document.getElementById("wordcount").value = document.f.words.value;
 		}
@@ -437,7 +489,10 @@ var footerHTML string = `</table>
 `
 var asIsHTML string = `
 		<tr>
-				<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" id="w%dasis" %s></td>
+			<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" id="w%dasis" %s></td>
+`
+var addLetterHTML string = `
+			<td><input type="button" name="w%db" value="Add letter" onclick="addletter(%d)" /></td>
 		</tr>
 `
 
