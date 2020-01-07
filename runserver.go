@@ -1,20 +1,23 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"jumble/dictionary"
 	"jumble/srvr"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
 func main() {
-	buffer, err := ioutil.ReadFile(os.Args[1])
+	dictionaryFileName := flag.String("d", "", "file name full of words")
+	debug := flag.Bool("v", false, "verbose output per request")
+	flag.Parse()
+	buffer, err := ioutil.ReadFile(*dictionaryFileName)
 	if err != nil {
-		log.Fatalf("Problem reading %q: %vn", os.Args[1], err)
+		log.Fatalf("Problem reading %q: %v\n", *dictionaryFileName, err)
 	}
 
 	before := time.Now()
@@ -25,6 +28,7 @@ func main() {
 	srv := &srvr.Srvr{
 		Router:    http.NewServeMux(),
 		FindWords: dict,
+		Debug:     *debug,
 	}
 
 	srv.Routes()
