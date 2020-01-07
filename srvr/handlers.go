@@ -296,7 +296,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 	w.Write([]byte(fmt.Sprintf(headerHTML, len(words))))
 
 	for wordNumber, word := range words {
-		w.Write([]byte(`	<table border="1">`))
+		w.Write([]byte("	<table border='1'>\n"))
 
 		// Characters in word
 		w.Write([]byte(fmt.Sprintf("		<tr id='w%drow'>\n", wordNumber)))
@@ -332,7 +332,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		// words that might match
 		w.Write([]byte(fmt.Sprintf("\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))))
 
-		w.Write([]byte(`	</table>`))
+		w.Write([]byte("	</table>\n"))
 	}
 
 	w.Write([]byte(footerHTML))
@@ -340,19 +340,19 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 
 func noWordsHTML(w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
-	w.Write([]byte(`	<table border="1">`))
-	w.Write([]byte("		<tr>\n"))
+	w.Write([]byte("	<table border='1'>\n"))
+	w.Write([]byte("		<tr id='w0row'>\n"))
 	for charNumber := 0; charNumber < 5; charNumber++ {
 		w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber)))
 	}
 	w.Write([]byte("		</tr>\n"))
-	w.Write([]byte("		<tr>\n"))
+	w.Write([]byte("		<tr id='w0marks'>\n"))
 	for charNumber := 0; charNumber < 5; charNumber++ {
 		w.Write([]byte(fmt.Sprintf(emptyMarkHTML, charNumber, charNumber)))
 	}
-	w.Write([]byte(fmt.Sprintf(asIsHTML, 5, 0, 0, "")))
-	w.Write([]byte("		</tr>\n"))
-	w.Write([]byte(`	</table>`))
+	w.Write([]byte(fmt.Sprintf(asIsHTML, 4, 0, 0, "")))
+	w.Write([]byte(fmt.Sprintf(addLetterHTML, 0, 0)))
+	w.Write([]byte("		</tr>\n	</table>\n"))
 	w.Write([]byte(footerHTML))
 }
 
@@ -376,21 +376,35 @@ var headerHTML string = `<!DOCTYPE html>
 			// The characters of the word
 			// <td><input type="text" id="w0c0" name="w0c0" size="1" /></td>
 			var wordID = 'w'+wordNumber+'c';
-			generated += '<tr>';
+			generated += '<tr id="w'+wordNumber+'row">';
+
+			// Count characters in this word
 			var charCount = 0;
-			for (var i = 0; i < 5; ++i) {
+			for (var i = 0; true; ++i) {
+				var prevChar = document.getElementById(wordID+i);
+				if (prevChar == null) {
+					break;
+				}	
+				++charCount;
+			}
+			if (charCount == 0) {
+				charCount = 5;
+			}
+
+			// redo the existing characters, or fill in charCount
+			// blank spaces for user to input new characters.
+			for (var i = 0; i < charCount; ++i) {
 				var charID = wordID + i;
 				var prevChar = document.getElementById(charID);
 				var prevCharValue = '';
 				if (prevChar != null) {
 					prevCharValue = prevChar.value;
 				}
-				++charCount
 				generated += '<td><input type="text" size="1" name="'+charID+'" id="'+charID+'" value="' +prevCharValue + '" /></td>';
 			}
 
 			// The marked characters of the word, to use to solve the jumble
-			generated += '</tr><tr>';
+			generated += '</tr><tr id="w'+wordNumber+'marks">';
 			for (var i = 0; i < charCount; ++i) {
 				var markID = wordID + i + 'forward';
 				generated += '<td><input type="checkbox" name="'
@@ -409,12 +423,15 @@ var headerHTML string = `<!DOCTYPE html>
 			var asIsID = 'w' + wordNumber + 'asis';
 			generated += '<tr><td colspan="'+charCount+'">Use as-is: <input type="checkbox" name="'+asIsID+'" id="' +asIsID+'" ';
 
+
 			var prevAsIs = document.getElementById(asIsID);
 			if (prevAsIs != null && prevAsIs.checked) {
 				generated += 'checked ';
 			}
+			generated += '/></td>';
 
-			generated += '/></td></tr></table>';
+			// The add-a-letter button
+			generated += '<td><input type="button" name="w'+wordNumber+'b" value="Add letter" onclick="addletter('+wordNumber+')" /></td></tr></table>';
 
 			return generated;
 		}
@@ -474,11 +491,10 @@ var headerHTML string = `<!DOCTYPE html>
 				<option value="5">5</option>
 			</select>
 		</td></tr>
-
-	<table border="1">
+		</table>
 `
 
-var footerHTML string = `</table>
+var footerHTML string = `
 	</div>
 	<input type="button" value="Unjumble Words" onclick="submitjumble()" />
 	<br />
