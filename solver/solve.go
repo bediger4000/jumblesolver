@@ -1,6 +1,10 @@
 package solver
 
-import "jumble/dictionary"
+import (
+	"jumble/runenumber"
+
+	"jumble/dictionary"
+)
 
 // LookupWords finds a []string for each solver.Word in its input,
 // based on the contents of dict.
@@ -24,4 +28,30 @@ func LookupWords(dict dictionary.Dictionary, words []Word) [][]string {
 		matches = append(matches, matched)
 	}
 	return matches
+}
+
+func CreateKeys(alternates [][]rune, length int) []string {
+
+	var combos runenumber.Number
+
+	for _, alt := range alternates {
+		combos = append(combos, runenumber.NewDigit(alt))
+	}
+
+	combostrings := make(map[string]bool)
+
+	done := false
+	var current []rune
+	for !done {
+		current, done = combos.Next()
+		_, alpha, _ := dictionary.Alphabetizer(current)
+		combostrings[alpha] = true
+	}
+
+	var strings []string
+	for str, _ := range combostrings {
+		strings = append(strings, str)
+	}
+
+	return strings
 }
