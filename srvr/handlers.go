@@ -26,6 +26,7 @@ var indexHTML string = `
 var solveHTML string = `
 <html>
 <head>
+    <meta charset="UTF-8">
 </head>
 <body>
 <h1>Solve it</h1>
@@ -94,6 +95,19 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
 			return
+		}
+
+		keys := solver.CreateKeys(alternates, len(alternates))
+		fmt.Printf("Found %d unique keys\n", len(keys))
+		if len(keys) < 30 {
+			for _, key := range keys {
+				fmt.Printf("%q\n", key)
+				if matches, ok := s.FindWords[key]; ok {
+					for _, match := range matches {
+						fmt.Printf("\t%q\n", match)
+					}
+				}
+			}
 		}
 
 		if s.Debug {
