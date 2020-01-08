@@ -103,8 +103,9 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 			for _, key := range keys {
 				fmt.Printf("%q\n", key)
 				if matches, ok := s.FindWords[key]; ok {
+					w.Write([]byte("<h2>Possible Single Word Solutions</h2>\n"))
 					for _, match := range matches {
-						fmt.Printf("\t%q\n", match)
+						w.Write([]byte(fmt.Sprintf("<p><keyboard>%s</keyboard></p>\n", match)))
 					}
 				}
 			}
@@ -134,10 +135,15 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		words, err := readRequestData(r, s.Debug)
+		words, reset, err := readRequestData(r, s.Debug)
 
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
+			return
+		}
+
+		if reset {
+			rewriteHTML(nil, nil, w)
 			return
 		}
 
@@ -173,7 +179,7 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 
 // readSolveData does some stuff
 func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][]rune, error) {
-	words, err := readRequestData(r, debug)
+	words, _, err := readRequestData(r, debug)
 	if err != nil {
 		return nil, fmt.Errorf("reading unjumbled words: %v\n", err)
 	}
@@ -231,17 +237,17 @@ func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][
 	return jumbledChars, nil
 }
 
-func readRequestData(r *http.Request, debug bool) ([]solver.Word, error) {
+func readRequestData(r *http.Request, debug bool) ([]solver.Word, bool, error) {
 	if r.FormValue("wordcount") == "" {
 		if debug {
 			fmt.Printf("form input wordcount has zero-length string value\n")
 		}
-		return []solver.Word{}, nil
+		return []solver.Word{}, true, nil
 	}
 
 	wordCount, err := strconv.Atoi(strings.TrimSpace(r.FormValue("wordcount")))
 	if err != nil {
-		return nil, fmt.Errorf("finding value of wordcount: %v\n", err)
+		return nil, false, fmt.Errorf("finding value of wordcount: %v\n", err)
 	}
 
 	if debug {
@@ -296,7 +302,7 @@ func readRequestData(r *http.Request, debug bool) ([]solver.Word, error) {
 		}
 	}
 
-	return words, nil
+	return words, false, nil
 }
 
 func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter) {
@@ -487,6 +493,11 @@ var headerHTML string = `<!DOCTYPE html>
 			document.f.action = "/solve";
 			document.f.submit();
 		}
+		function submitreset() {
+			document.f.action = "/jumble";
+			document.getElementById("wordcount").value = "";
+			document.f.submit();
+		}
 	</script>
 	</head>
 	<body onload="setwordcount()" >
@@ -513,6 +524,9 @@ var footerHTML string = `
 	<input type="button" value="Unjumble Words" onclick="submitjumble()" />
 	<br />
 	<input type="submit" value="Solve" onclick="submitsolve()" />
+	<br />
+	<br />
+	<input type="submit" value="Reset" onclick="submitreset()" />
 	</form>
 	</body>
 </html>
