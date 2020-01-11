@@ -97,32 +97,33 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 			return
 		}
 
-		keys := solver.CreateKeys(alternates, len(alternates))
-		fmt.Printf("Found %d unique keys\n", len(keys))
-		if len(keys) < 30 {
-			for _, key := range keys {
-				fmt.Printf("%q\n", key)
-				if matches, ok := s.FindWords[key]; ok {
-					w.Write([]byte("<h2>Possible Single Word Solutions</h2>\n"))
-					for _, match := range matches {
-						w.Write([]byte(fmt.Sprintf("<p><keyboard>%s</keyboard></p>\n", match)))
-					}
-				}
-			}
-		}
-
-		if s.Debug {
-			for i, alternate := range alternates {
-				fmt.Printf("Solution letter %d: %s\n", i, string(alternate))
-			}
-		}
-
 		w.Write([]byte(solveHTML))
+		w.Write([]byte("<h4>Possible Alternates</h4>\n<table border='1'>\n"))
 		for _, alternate := range alternates {
-			w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", string(alternate))))
+			w.Write([]byte(fmt.Sprintf("\t<tr><td>%s</td></tr>\n", string(alternate))))
 		}
-		w.Write([]byte(solveHTML2))
+		w.Write([]byte("</table>\n"))
 
+		keys := solver.CreateKeys(alternates, len(alternates))
+		w.Write([]byte(fmt.Sprintf("<h2>Found %d unique keys</h2>\n", len(keys))))
+
+		for _, key := range keys {
+			w.Write([]byte(fmt.Sprintf("%q\n", key)))
+			if matches, ok := s.FindWords[key]; ok {
+				uniquematches := make(map[string]bool)
+				for _, match := range matches {
+					uniquematches[match] = true
+				}
+				w.Write([]byte("<h2>Possible Unique Single Word Solutions</h2>\n"))
+				w.Write([]byte(fmt.Sprintf("<h4>Key %q</h4>\n<pre>", key)))
+				for match, _ := range uniquematches {
+					w.Write([]byte(fmt.Sprintf("%s\n", match)))
+				}
+				w.Write([]byte("</pre>\n"))
+			}
+		}
+
+		w.Write([]byte(solveHTML2))
 	}
 }
 
@@ -273,7 +274,9 @@ func readRequestData(r *http.Request, debug bool) ([]solver.Word, bool, error) {
 
 				markCode := wordCode + "forward"
 				m := strings.TrimSpace(r.FormValue(markCode))
-				fmt.Printf("\tletter %d, mark name %q: %q\n", charNumber, markCode, r.FormValue(markCode))
+				if debug {
+					fmt.Printf("\tletter %d, mark name %q: %q\n", charNumber, markCode, r.FormValue(markCode))
+				}
 				if m == "on" {
 					marks = append(marks, charNumber)
 				}
@@ -321,7 +324,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		// Characters in word
 		w.Write([]byte(fmt.Sprintf("		<tr id='w%drow'>\n", wordNumber)))
 		for charNumber, char := range word.Word {
-			w.Write([]byte(fmt.Sprintf(characterHTML, wordNumber, charNumber, wordNumber, charNumber, char)))
+			w.Write([]byte(fmt.Sprintf(characterHTML, wordNumber, charNumber, wordNumber, charNumber, char, wordNumber, charNumber)))
 		}
 		w.Write([]byte("		</tr>\n"))
 
@@ -363,7 +366,7 @@ func noWordsHTML(w http.ResponseWriter) {
 	w.Write([]byte("	<table border='1'>\n"))
 	w.Write([]byte("		<tr id='w0row'>\n"))
 	for charNumber := 0; charNumber < 5; charNumber++ {
-		w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber)))
+		w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber, 0, charNumber)))
 	}
 	w.Write([]byte("		</tr>\n"))
 	w.Write([]byte("		<tr id='w0marks'>\n"))
@@ -420,7 +423,9 @@ var headerHTML string = `<!DOCTYPE html>
 				if (prevChar != null) {
 					prevCharValue = prevChar.value;
 				}
-				generated += '<td><input type="text" size="1" name="'+charID+'" id="'+charID+'" value="' +prevCharValue + '" /></td>';
+				generated += '<td><input type="text" size="1" name="'
+					+charID+'" id="'+charID+'" value="' +prevCharValue
+					+ '" oninput="letterchanged('+wordNumber+','+i+')" /></td>';
 			}
 
 			// The marked characters of the word, to use to solve the jumble
@@ -459,7 +464,7 @@ var headerHTML string = `<!DOCTYPE html>
 				var html = '<table border="0">';
 				html += '<tr><td>Number of words:';
 				html += '	<select name="wordcount" id="wordcount" onchange="wordcountchange()">';
-				for (var i = 1; i <= 5; ++i) {
+				for (var i = 1; i <= 7; ++i) {
 					html += '<option value="'+i+'"'
 					if (i == selected) {
 						html += ' selected="true" ';
@@ -480,6 +485,31 @@ var headerHTML string = `<!DOCTYPE html>
 			var markrow = document.getElementById("w"+wordno+"marks");
 			var markdatum = markrow.insertCell(-1);
 			markdatum.innerHTML = '<input type="checkbox" id="'+name+'forward" name="'+name+'forward" />';
+		}
+
+		function letterchanged(wordno, charno) {
+			var wordcode = 'w'+wordno+'c'+charno;
+			var cell = document.getElementById(wordcode);
+			var val = cell.value;
+			// if val is one character, move to the next cell
+			if (val.length == 1) {
+				var nextwordcode = 'w'+wordno+'c'+(charno+1);
+				var nextcell = document.getElementById(nextwordcode);
+				if (nextcell != null) {
+					nextcell.focus();
+				}
+			}
+			// if val is more than one character, trim it,
+			// move to next cell, put next character there
+			if (val.length > 1) {
+				cell.value = val[0];
+				var nextwordcode = 'w'+wordno+'c'+(charno+1);
+				var nextcell = document.getElementById(nextwordcode);
+				if (nextcell != null) {
+					nextcell.value = val[1];
+					nextcell.focus();
+				}
+			}
 		}
 
 		function setwordcount() {
@@ -514,6 +544,8 @@ var headerHTML string = `<!DOCTYPE html>
 				<option value="3">3</option>
 				<option value="4">4</option>
 				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
 			</select>
 		</td></tr>
 		</table>
@@ -540,9 +572,9 @@ var addLetterHTML string = `
 		</tr>
 `
 
-var characterHTML string = `			<td><input type="text" id="w%dc%d" name="w%dc%d" size="1" value="%c" /></td>
+var characterHTML string = `			<td><input type="text" id="w%dc%d" name="w%dc%d" size="1" value="%c" oninput="letterchanged(%d, %d)" /></td>
 `
-var emptyCharacterHTML string = `			<td><input type="text" id="w0c%d" name="w0c%d" size="1" /></td>
+var emptyCharacterHTML string = `			<td><input type="text" id="w0c%d" name="w0c%d" size="1"  oninput="letterchanged(%d, %d)" /></td>
 `
 var markHTML string = `			<td><input type="checkbox" id="w%dc%dforward" name="w%dc%dforward" %s /></td>
 `
