@@ -90,40 +90,27 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		alternates, err := readSolveData(s.FindWords, r, s.Debug)
+		alternates, finalwords, finalwordsizes, err := readSolveData(s.FindWords, r, s.Debug)
 
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
 			return
 		}
 
-		w.Write([]byte(solveHTML))
-		w.Write([]byte("<h4>Possible Alternates</h4>\n<table border='1'>\n"))
-		for _, alternate := range alternates {
-			w.Write([]byte(fmt.Sprintf("\t<tr><td>%s</td></tr>\n", string(alternate))))
-		}
-		w.Write([]byte("</table>\n"))
-
-		keys := solver.CreateKeys(alternates, len(alternates))
-		w.Write([]byte(fmt.Sprintf("<h2>Found %d unique keys</h2>\n", len(keys))))
-
-		for _, key := range keys {
-			w.Write([]byte(fmt.Sprintf("%q\n", key)))
-			if matches, ok := s.FindWords[key]; ok {
-				uniquematches := make(map[string]bool)
-				for _, match := range matches {
-					uniquematches[match] = true
-				}
-				w.Write([]byte("<h2>Possible Unique Single Word Solutions</h2>\n"))
-				w.Write([]byte(fmt.Sprintf("<h4>Key %q</h4>\n<pre>", key)))
-				for match, _ := range uniquematches {
-					w.Write([]byte(fmt.Sprintf("%s\n", match)))
-				}
-				w.Write([]byte("</pre>\n"))
+		if s.Debug {
+			fmt.Printf("%d letters in solution\n", len(alternates))
+			for _, alts := range alternates {
+				fmt.Printf("%v\n", alts)
 			}
 		}
 
-		w.Write([]byte(solveHTML2))
+		if finalwords == 1 {
+			s.singleWordSolution(w, alternates)
+			return
+		}
+
+		// Multi-word solution
+		s.multiWordSolution(w, alternates, finalwords, finalwordsizes)
 	}
 }
 
@@ -178,11 +165,15 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 	}
 }
 
-// readSolveData does some stuff
-func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][]rune, error) {
+// readSolveData returns an array of []rune. The array is len the number
+// of "marked" characters in the jumbled words, which is the number of
+// characters in the solution. Since a jumbled word can have more than
+// a single matching real word, each position in the array is a []rune,
+// so that each position can hold alternate characters.
+func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][]rune, int, []int, error) {
 	words, _, err := readRequestData(r, debug)
 	if err != nil {
-		return nil, fmt.Errorf("reading unjumbled words: %v\n", err)
+		return nil, 0, nil, fmt.Errorf("reading unjumbled words: %v\n", err)
 	}
 	if debug {
 		fmt.Printf("%d jumbled words\n", len(words))
@@ -235,7 +226,42 @@ func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][
 		}
 	}
 
-	return jumbledChars, nil
+	// Find out how many final words there are
+	finalWords, finalWordSizes := determineFinalWords(r)
+	if finalWords == 1 {
+		finalWordSizes = []int{len(jumbledChars)}
+	}
+	if debug {
+		fmt.Printf("%d words in solution\n", finalWords)
+		fmt.Printf("solution word sizes: %v\n", finalWordSizes)
+	}
+
+	return jumbledChars, finalWords, finalWordSizes, nil
+}
+
+func determineFinalWords(r *http.Request) (int, []int) {
+	wrdCntStr := r.FormValue("soluWrdCnt")
+	solutionCount := 1
+	if wrdCntStr != "" {
+		n, err := strconv.Atoi(wrdCntStr)
+		if err == nil {
+			solutionCount = n
+		}
+	}
+	var solutionSizes []int
+	if solutionCount > 1 {
+		soluWrdSz := r.FormValue("soluWrdSz")
+		if soluWrdSz != "" {
+			fields := strings.Fields(soluWrdSz)
+			for _, szStr := range fields {
+				n, err := strconv.Atoi(szStr)
+				if err == nil {
+					solutionSizes = append(solutionSizes, n)
+				}
+			}
+		}
+	}
+	return solutionCount, solutionSizes
 }
 
 func readRequestData(r *http.Request, debug bool) ([]solver.Word, bool, error) {
@@ -361,6 +387,44 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 	w.Write([]byte(footerHTML))
 }
 
+func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, finalcount int, finalsizes []int) {
+	w.Write([]byte(solveHTML))
+	w.Write([]byte("<h3>Possible multi-word solutions</h3>\n"))
+	keyCombos := solver.GenerateKeyCombos(alternates, finalcount, finalsizes)
+	multiWordSolutions := solver.SolutionsFromKeyCombos(keyCombos, s.FindWords)
+	for _, solution := range multiWordSolutions {
+		w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", strings.Join(solution, " "))))
+	}
+	w.Write([]byte(solveHTML2))
+}
+
+func (s *Srvr) singleWordSolution(w http.ResponseWriter, alternates [][]rune) {
+
+	w.Write([]byte(solveHTML))
+	w.Write([]byte("<h4>Possible Alternates</h4>\n<table border='1'>\n"))
+	for _, alternate := range alternates {
+		w.Write([]byte(fmt.Sprintf("\t<tr><td>%s</td></tr>\n", string(alternate))))
+	}
+	w.Write([]byte("</table>\n"))
+
+	uniquematches := solver.FindUniqueMatches(alternates, s.FindWords)
+
+	w.Write([]byte(fmt.Sprintf("<h2>Found %d unique keys</h2>\n", len(uniquematches))))
+
+	w.Write([]byte("<h2>Possible Unique Single Word Solutions</h2>\n"))
+	for key, matches := range uniquematches {
+		if len(matches) > 0 {
+			w.Write([]byte(fmt.Sprintf("<h4>Key %q</h4>\n<pre>", key)))
+			for _, match := range matches {
+				w.Write([]byte(fmt.Sprintf("%s\n", match)))
+			}
+			w.Write([]byte("</pre>\n"))
+		}
+	}
+
+	w.Write([]byte(solveHTML2))
+}
+
 func noWordsHTML(w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
 	w.Write([]byte("	<table border='1'>\n"))
@@ -457,6 +521,7 @@ var headerHTML string = `<!DOCTYPE html>
 
 			// The add-a-letter button
 			generated += '<td><input type="button" name="w'+wordNumber+'b" value="Add letter" onclick="addletter('+wordNumber+')" /></td></tr></table>';
+
 
 			return generated;
 		}
@@ -557,6 +622,8 @@ var footerHTML string = `
 	<br />
 	<input type="submit" value="Solve" onclick="submitsolve()" />
 	<br />
+	<p>Solution words: <input type="text" id="soluWrdCnt" name="soluWrdCnt" size="1" /></p>
+	<p>Solution sizes: <input type="text" id="soluWrdSz"  name="soluWrdSz" size="8" /></p>
 	<br />
 	<input type="submit" value="Reset" onclick="submitreset()" />
 	</form>

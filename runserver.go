@@ -23,7 +23,7 @@ func main() {
 	before := time.Now()
 	dict := dictionary.Build(buffer)
 	dict.Dedupe()
-	fmt.Printf("Dictionary construction %v\n", time.Since(before))
+	fmt.Printf("Dictionary %d keys, construction %v\n", len(dict), time.Since(before))
 
 	srv := &srvr.Srvr{
 		Router:    http.NewServeMux(),
