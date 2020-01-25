@@ -17,6 +17,10 @@ Has no dependencies outside of the Go standard library.
 
 It's a webapp that runs correctly probably only under Linux,
 maybe under a BSD.
+You DO NOT want to expose this to the internet.
+I made no effort to keep it safe, or to have the web app part
+validate user input.
+It is a security risk of unknown magnitude.
 
     $ ./runserver -d /usr/share/dict/words
 
