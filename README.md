@@ -42,15 +42,15 @@ It makes a hashtable/dictionary/associative array using an alphabetized word
 as a key, and an array of words that alphabetize to that key as the value.
 
 The program can alphabetize the characters in a jumbled input word,
-and use the resulting string to look up all words that potentiall match.
+and use the resulting string to look up all words that potentially match.
+A jumbled word can match more than one unjumbled alternate word.
 That lets it "unjumble" words.
-Potentially, a jumbled word can match more than one unjumbled alternate word.
 
 The same thing happens in the final solution.
 Marked characters of the un-jumbled words get used to create a key
 to look up possible matches in the dictionary.
-One complication happens when a  letter-alphabetized key matches more
-than one word.
+
+One complication happens when a letter-alphabetized key matches more than one word.
 More than one marked character is possible.
 The code creates keys by iterating through all the possible combinations.
 That is,
