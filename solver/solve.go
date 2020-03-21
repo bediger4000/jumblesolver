@@ -31,6 +31,14 @@ func LookupWords(dict dictionary.Dictionary, words []Word) [][]string {
 	return matches
 }
 
+// CreateKeys makes all the unique (alphabetized) dictionary keys
+// that can be calculated from an array of "alternates". Alternates
+// come from when a jumbled word has more than one match in the dictionary,
+// and so the promoted letters might end up different.
+// For example, key: aelm, first and last letters promoted would end up
+// matching unjumbled words "meal" and "lame", which would promote 'm','l"
+// in one case, 'e', 'l' in the other. That leads to alternate sets of promoted
+// letters for the final solution.
 func CreateKeys(alternates [][]rune) [][]rune {
 
 	var combos runenumber.Number
@@ -50,7 +58,7 @@ func CreateKeys(alternates [][]rune) [][]rune {
 	}
 
 	var strings [][]rune
-	for str, _ := range combostrings {
+	for str := range combostrings {
 		strings = append(strings, []rune(str))
 	}
 
@@ -90,7 +98,7 @@ func FindUniqueMatches(alternates [][]rune, dict dictionary.Dictionary) map[stri
 			}
 		}
 		var allmatched []string
-		for match, _ := range uniquematches {
+		for match := range uniquematches {
 			allmatched = append(allmatched, match)
 		}
 		finalmatches[string(key)] = allmatched
@@ -99,8 +107,9 @@ func FindUniqueMatches(alternates [][]rune, dict dictionary.Dictionary) map[stri
 	return finalmatches
 }
 
-// Generate all the key (character-alphabetized string) combinations,
-// based on the
+// GenerateKeyCombos creates all the key (character-alphabetized string) combinations,
+// based on the sets of letters promoted from the unjumbled words, the number and
+// lengths of words in the final solution.
 func GenerateKeyCombos(alternates [][]rune, finalcount int, finalsizes []int) [][][]rune {
 
 	// func generateKeys uses len of finalsizes to know when to
@@ -169,6 +178,9 @@ func sumarray(array []int) int {
 	return sum
 }
 
+// SolutionsFromKeyCombos does the work of finding multi-word solutions
+// from the keyCombos, which are alphabetized keys that fit the lengths
+// and number of final solution words.
 func SolutionsFromKeyCombos(keyCombos [][][]rune, dict dictionary.Dictionary) [][]string {
 	var solutions [][]string
 

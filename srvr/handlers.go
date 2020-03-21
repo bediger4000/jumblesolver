@@ -10,7 +10,7 @@ import (
 	"jumble/solver"
 )
 
-var indexHTML string = `
+var indexHTML = `
 <html>
 <head>
 </head>
@@ -23,7 +23,7 @@ var indexHTML string = `
 </html>
 `
 
-var solveHTML string = `
+var solveHTML = `
 <html>
 <head>
     <meta charset="UTF-8">
@@ -32,12 +32,12 @@ var solveHTML string = `
 <h1>Solve it</h1>
 <form name="f" method="post" >
 `
-var solveHTML2 string = `</form>
+var solveHTML2 = `</form>
 </body>
 </html>
 `
 
-var formHTML string = `
+var formHTML = `
 <html>
 <head>
 </head>
@@ -51,15 +51,7 @@ var formHTML string = `
 </html>
 `
 
-var explainHTML string = `<!DOCTYPE html>
-<html>
-    <head>
-    <meta charset="UTF-8">
-	</head>
-	<body>
-`
-
-var errorHTML string = `<!DOCTYPE html>
+var errorHTML = `<!DOCTYPE html>
 <html>
     <head>
     <meta charset="UTF-8">
@@ -173,7 +165,7 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][]rune, int, []int, error) {
 	words, _, err := readRequestData(r, debug)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("reading unjumbled words: %v\n", err)
+		return nil, 0, nil, fmt.Errorf("reading unjumbled words: %v", err)
 	}
 	if debug {
 		fmt.Printf("%d jumbled words\n", len(words))
@@ -274,7 +266,7 @@ func readRequestData(r *http.Request, debug bool) ([]solver.Word, bool, error) {
 
 	wordCount, err := strconv.Atoi(strings.TrimSpace(r.FormValue("wordcount")))
 	if err != nil {
-		return nil, false, fmt.Errorf("finding value of wordcount: %v\n", err)
+		return nil, false, fmt.Errorf("finding value of wordcount: %v", err)
 	}
 
 	if debug {
@@ -356,7 +348,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 
 		// Marks for characters to carry forward
 		w.Write([]byte(fmt.Sprintf("		<tr id='w%dmarks'>\n", wordNumber)))
-		for charNumber, _ := range word.Word {
+		for charNumber := range word.Word {
 			checked := ""
 
 			for _, markedChar := range word.MarkedChars {
@@ -443,7 +435,7 @@ func noWordsHTML(w http.ResponseWriter) {
 	w.Write([]byte(footerHTML))
 }
 
-var headerHTML string = `<!DOCTYPE html>
+var headerHTML = `<!DOCTYPE html>
 <html>
 	<head>
 	<meta charset="UTF-8">
@@ -616,7 +608,7 @@ var headerHTML string = `<!DOCTYPE html>
 		</table>
 `
 
-var footerHTML string = `
+var footerHTML = `
 	</div>
 	<input type="button" value="Unjumble Words" onclick="submitjumble()" />
 	<br />
@@ -630,20 +622,20 @@ var footerHTML string = `
 	</body>
 </html>
 `
-var asIsHTML string = `
+var asIsHTML = `
 		<tr>
 			<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" id="w%dasis" %s></td>
 `
-var addLetterHTML string = `
+var addLetterHTML = `
 			<td><input type="button" name="w%db" value="Add letter" onclick="addletter(%d)" /></td>
 		</tr>
 `
 
-var characterHTML string = `			<td><input type="text" id="w%dc%d" name="w%dc%d" size="1" value="%c" oninput="letterchanged(%d, %d)" /></td>
+var characterHTML = `			<td><input type="text" id="w%dc%d" name="w%dc%d" size="1" value="%c" oninput="letterchanged(%d, %d)" /></td>
 `
-var emptyCharacterHTML string = `			<td><input type="text" id="w0c%d" name="w0c%d" size="1"  oninput="letterchanged(%d, %d)" /></td>
+var emptyCharacterHTML = `			<td><input type="text" id="w0c%d" name="w0c%d" size="1"  oninput="letterchanged(%d, %d)" /></td>
 `
-var markHTML string = `			<td><input type="checkbox" id="w%dc%dforward" name="w%dc%dforward" %s /></td>
+var markHTML = `			<td><input type="checkbox" id="w%dc%dforward" name="w%dc%dforward" %s /></td>
 `
-var emptyMarkHTML string = `			<td><input type="checkbox" id="w0c%dforward" name="w0c%dforward" /></td>
+var emptyMarkHTML = `			<td><input type="checkbox" id="w0c%dforward" name="w0c%dforward" /></td>
 `

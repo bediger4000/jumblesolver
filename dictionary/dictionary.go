@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// keys are alphabetized words, values are the words
+// Dictionary keys are alphabetized words, values are the words
 type Dictionary map[string][]string
 
 // Build fills in a Dictionary from a buffer, which
@@ -31,34 +31,28 @@ func Build(buffer []byte) Dictionary {
 
 // Dedupe eliminates duplicate words from list of words that
 // alphabetize to a given string.
-func (dict Dictionary) Dedupe() (int, int) {
-	maxbefore := 0
-	max := 0
-	for alphabetized, words := range dict {
-		if n := len(words); n > maxbefore {
-			maxbefore = n
-		}
+func (dict Dictionary) Dedupe() {
+	for alphabetizedKey, words := range dict {
 		d := make(map[string]bool)
 		for _, word := range words {
 			d[word] = true
 		}
 		var newwords []string
-		for word, _ := range d {
+		for word := range d {
 			newwords = append(newwords, word)
 		}
-		if n := len(newwords); n > max {
-			max = n
-		}
-		dict[alphabetized] = newwords
+		dict[alphabetizedKey] = newwords
 	}
-	return maxbefore, max
 }
 
-type RuneArray []rune
+// runeArray does duplicate type RuneArray in package solver,
+// but if I use solver.RuneArray here, I get a circular import.
+// The answer is a separate package, but too much work.
+type runeArray []rune
 
-func (r RuneArray) Len() int           { return len(r) }
-func (r RuneArray) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r RuneArray) Less(i, j int) bool { return r[i] < r[j] }
+func (r runeArray) Len() int           { return len(r) }
+func (r runeArray) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r runeArray) Less(i, j int) bool { return r[i] < r[j] }
 
 // Alphabetizer receives a word as an array of bytes, returns
 // a lowercase word, the word with all runes alphabetized,
@@ -71,6 +65,6 @@ func Alphabetizer(runes []rune) (string, string, bool) {
 	}
 	alphabetized := make([]rune, len(runes))
 	copy(alphabetized, runes)
-	sort.Sort(RuneArray(alphabetized))
+	sort.Sort(runeArray(alphabetized))
 	return word, string(alphabetized), true
 }
