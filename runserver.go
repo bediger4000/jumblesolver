@@ -12,18 +12,20 @@ import (
 )
 
 func main() {
-	dictionaryFileName := flag.String("d", "", "file name full of words")
+	dictionaryFileName := flag.String("d", "/usr/share/dict/words", "file name full of words")
+	portString := flag.String("p", "8012", "TCP port on which to listen")
 	debug := flag.Bool("v", false, "verbose output per request")
 	flag.Parse()
+
 	buffer, err := ioutil.ReadFile(*dictionaryFileName)
 	if err != nil {
-		log.Fatalf("Problem reading %q: %v\n", *dictionaryFileName, err)
+		log.Fatalf("Problem reading dictionary file %q: %v\n", *dictionaryFileName, err)
 	}
 
 	before := time.Now()
 	dict := dictionary.Build(buffer)
 	dict.Dedupe()
-	fmt.Printf("Dictionary %d keys, construction %v\n", len(dict), time.Since(before))
+	fmt.Printf("Dictionary file %s has %d keys, construction %v\n", *dictionaryFileName, len(dict), time.Since(before))
 
 	srv := &srvr.Srvr{
 		Router:    http.NewServeMux(),
@@ -34,12 +36,14 @@ func main() {
 	srv.Routes()
 
 	s := &http.Server{
-		Addr:           ":8012",
+		Addr:           ":" + *portString,
 		Handler:        srv.Router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
+
+	fmt.Printf("Jumbled-word solver listening on TCP port %s\n", *portString)
 
 	log.Fatal(s.ListenAndServe())
 
