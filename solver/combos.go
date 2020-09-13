@@ -20,6 +20,7 @@ func keyCandidates(instring []rune, firstWord int) [][][]rune {
 	case 6:
 		return keyCandidates6(instring)
 	case 7:
+		return keyCandidates7(instring)
 	}
 	fmt.Printf("exit keyCandidates for %q, the wrong way\n", string(instring))
 	return nil
@@ -235,6 +236,55 @@ func keyCandidates6(letters []rune) [][][]rune {
 							}
 
 							uniques[string(part1)+string(otherpart)] = [][]rune{part1, otherpart}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var words [][][]rune
+
+	for _, wordpair := range uniques {
+		words = append(words, wordpair)
+	}
+
+	return words
+}
+
+func keyCandidates7(letters []rune) [][][]rune {
+
+	n := len(letters)
+	sort.Sort(RuneArray(letters))
+
+	uniques := make(map[string][][]rune)
+
+	for mark1 := 0; mark1 < n-5; mark1++ {
+		for mark2 := mark1 + 1; mark2 < n-4; mark2++ {
+			for mark3 := mark2 + 1; mark3 < n-3; mark3++ {
+				for mark4 := mark3 + 1; mark4 < n-2; mark4++ {
+					for mark5 := mark4 + 1; mark5 < n-1; mark5++ {
+						for mark6 := mark5 + 1; mark6 < n; mark6++ {
+							for mark7 := mark6 + 1; mark7 < n; mark7++ {
+
+								part1 := RuneArray{
+									letters[mark1], letters[mark2],
+									letters[mark3], letters[mark4],
+									letters[mark5], letters[mark6],
+									letters[mark7],
+								}
+
+								var otherpart RuneArray
+								for idx := 0; idx < n; idx++ {
+									if idx != mark1 && idx != mark2 && idx != mark3 &&
+										idx != mark4 && idx != mark5 && idx != mark6 &&
+										idx != mark7 {
+										otherpart = append(otherpart, letters[idx])
+									}
+								}
+
+								uniques[string(part1)+string(otherpart)] = [][]rune{part1, otherpart}
+							}
 						}
 					}
 				}
