@@ -3,6 +3,7 @@ package srvr
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -384,6 +385,7 @@ func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, fin
 	w.Write([]byte("<h3>Possible multi-word solutions</h3>\n"))
 	keyCombos := solver.GenerateKeyCombos(alternates, finalcount, finalsizes)
 	multiWordSolutions := solver.SolutionsFromKeyCombos(keyCombos, s.FindWords)
+	sort.Sort(StringSliceSlice(multiWordSolutions))
 	for _, solution := range multiWordSolutions {
 		w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", strings.Join(solution, " "))))
 	}
@@ -639,3 +641,18 @@ var markHTML = `			<td><input type="checkbox" id="w%dc%dforward" name="w%dc%dfor
 `
 var emptyMarkHTML = `			<td><input type="checkbox" id="w0c%dforward" name="w0c%dforward" /></td>
 `
+
+type StringSliceSlice [][]string
+
+func (sss StringSliceSlice) Len() int { return len(sss) }
+func (sss StringSliceSlice) Less(i, j int) bool {
+	for idx := 0; idx < len(sss[i]); idx++ {
+		if sss[i][idx] != sss[j][idx] {
+			return sss[i][idx] < sss[j][idx]
+		}
+	}
+	return false
+}
+func (sss StringSliceSlice) Swap(i, j int) {
+	sss[i], sss[j] = sss[j], sss[i]
+}
