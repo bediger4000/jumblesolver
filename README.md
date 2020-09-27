@@ -22,7 +22,9 @@ I made no effort to keep it safe, or to have the web app part
 validate user input.
 It is a security risk of unknown magnitude.
 
-    $ ./runserver -d /usr/share/dict/words
+```sh
+$ ./runserver -d /usr/share/dict/words
+```
 
 The file specified with "-d" is a text file,
 one word per line.
