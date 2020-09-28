@@ -86,7 +86,7 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 		alternates, finalwords, finalwordsizes, err := readSolveData(s.FindWords, r, s.Debug)
 
 		if err != nil {
-			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
+			fmt.Fprintf(w, errorHTML, err)
 			return
 		}
 
@@ -119,7 +119,7 @@ func (s *Srvr) handleJumble() http.HandlerFunc {
 		words, reset, err := readRequestData(r, s.Debug)
 
 		if err != nil {
-			w.Write([]byte(fmt.Sprintf(errorHTML, err)))
+			fmt.Fprintf(w, errorHTML, err)
 			return
 		}
 
@@ -153,7 +153,7 @@ func (s *Srvr) handleForm() http.HandlerFunc {
 				}
 			}
 		}
-		w.Write([]byte(fmt.Sprintf(formHTML, text)))
+		fmt.Fprintf(w, formHTML, text)
 
 	}
 }
@@ -335,20 +335,20 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf(headerHTML, len(words))))
+	fmt.Fprintf(w, headerHTML, len(words))
 
 	for wordNumber, word := range words {
 		w.Write([]byte("	<table border='1'>\n"))
 
 		// Characters in word
-		w.Write([]byte(fmt.Sprintf("		<tr id='w%drow'>\n", wordNumber)))
+		fmt.Fprintf(w, "		<tr id='w%drow'>\n", wordNumber)
 		for charNumber, char := range word.Word {
-			w.Write([]byte(fmt.Sprintf(characterHTML, wordNumber, charNumber, wordNumber, charNumber, char, wordNumber, charNumber)))
+			fmt.Fprintf(w, characterHTML, wordNumber, charNumber, wordNumber, charNumber, char, wordNumber, charNumber)
 		}
 		w.Write([]byte("		</tr>\n"))
 
 		// Marks for characters to carry forward
-		w.Write([]byte(fmt.Sprintf("		<tr id='w%dmarks'>\n", wordNumber)))
+		fmt.Fprintf(w, "		<tr id='w%dmarks'>\n", wordNumber)
 		for charNumber := range word.Word {
 			checked := ""
 
@@ -359,7 +359,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 				}
 			}
 
-			w.Write([]byte(fmt.Sprintf(markHTML, wordNumber, charNumber, wordNumber, charNumber, checked)))
+			fmt.Fprintf(w, markHTML, wordNumber, charNumber, wordNumber, charNumber, checked)
 		}
 		w.Write([]byte("		</tr>\n"))
 
@@ -368,11 +368,11 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		if word.AsIs {
 			checked = "checked"
 		}
-		w.Write([]byte(fmt.Sprintf(asIsHTML, len(word.Word)-1, wordNumber, wordNumber, checked)))
-		w.Write([]byte(fmt.Sprintf(addLetterHTML, wordNumber, wordNumber)))
+		fmt.Fprintf(w, asIsHTML, len(word.Word)-1, wordNumber, wordNumber, checked)
+		fmt.Fprintf(w, addLetterHTML, wordNumber, wordNumber)
 
 		// words that might match
-		w.Write([]byte(fmt.Sprintf("\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))))
+		fmt.Fprintf(w, "\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))
 
 		w.Write([]byte("	</table>\n"))
 	}
@@ -387,7 +387,7 @@ func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, fin
 	multiWordSolutions := solver.SolutionsFromKeyCombos(keyCombos, s.FindWords)
 	sort.Sort(StringSliceSlice(multiWordSolutions))
 	for _, solution := range multiWordSolutions {
-		w.Write([]byte(fmt.Sprintf("<p>%s</p>\n", strings.Join(solution, " "))))
+		fmt.Fprintf(w, "<p>%s</p>\n", strings.Join(solution, " "))
 	}
 	w.Write([]byte(solveHTML2))
 }
@@ -397,20 +397,20 @@ func (s *Srvr) singleWordSolution(w http.ResponseWriter, alternates [][]rune) {
 	w.Write([]byte(solveHTML))
 	w.Write([]byte("<h4>Possible Alternates</h4>\n<table border='1'>\n"))
 	for _, alternate := range alternates {
-		w.Write([]byte(fmt.Sprintf("\t<tr><td>%s</td></tr>\n", string(alternate))))
+		fmt.Fprintf(w, "\t<tr><td>%s</td></tr>\n", string(alternate))
 	}
 	w.Write([]byte("</table>\n"))
 
 	uniquematches := solver.FindUniqueMatches(alternates, s.FindWords)
 
-	w.Write([]byte(fmt.Sprintf("<h2>Found %d unique keys</h2>\n", len(uniquematches))))
+	fmt.Fprintf(w, "<h2>Found %d unique keys</h2>\n", len(uniquematches))
 
 	w.Write([]byte("<h2>Possible Unique Single Word Solutions</h2>\n"))
 	for key, matches := range uniquematches {
 		if len(matches) > 0 {
-			w.Write([]byte(fmt.Sprintf("<h4>Key %q</h4>\n<pre>", key)))
+			fmt.Fprintf(w, "<h4>Key %q</h4>\n<pre>", key)
 			for _, match := range matches {
-				w.Write([]byte(fmt.Sprintf("%s\n", match)))
+				fmt.Fprintf(w, "%s\n", match)
 			}
 			w.Write([]byte("</pre>\n"))
 		}
@@ -420,19 +420,19 @@ func (s *Srvr) singleWordSolution(w http.ResponseWriter, alternates [][]rune) {
 }
 
 func noWordsHTML(w http.ResponseWriter) {
-	w.Write([]byte(fmt.Sprintf(headerHTML, 1)))
+	fmt.Fprintf(w, headerHTML, 1)
 	w.Write([]byte("	<table border='1'>\n"))
 	w.Write([]byte("		<tr id='w0row'>\n"))
-	for charNumber := 0; charNumber < 5; charNumber++ {
-		w.Write([]byte(fmt.Sprintf(emptyCharacterHTML, charNumber, charNumber, 0, charNumber)))
+	for charNumber := 0; charNumber < 6; charNumber++ {
+		fmt.Fprintf(w, emptyCharacterHTML, charNumber, charNumber, 0, charNumber)
 	}
 	w.Write([]byte("		</tr>\n"))
 	w.Write([]byte("		<tr id='w0marks'>\n"))
-	for charNumber := 0; charNumber < 5; charNumber++ {
-		w.Write([]byte(fmt.Sprintf(emptyMarkHTML, charNumber, charNumber)))
+	for charNumber := 0; charNumber < 6; charNumber++ {
+		fmt.Fprintf(w, emptyMarkHTML, charNumber, charNumber)
 	}
-	w.Write([]byte(fmt.Sprintf(asIsHTML, 4, 0, 0, "")))
-	w.Write([]byte(fmt.Sprintf(addLetterHTML, 0, 0)))
+	fmt.Fprintf(w, asIsHTML, 4, 0, 0, "")
+	fmt.Fprintf(w, addLetterHTML, 0, 0)
 	w.Write([]byte("		</tr>\n	</table>\n"))
 	w.Write([]byte(footerHTML))
 }
@@ -469,7 +469,7 @@ var headerHTML = `<!DOCTYPE html>
 				++charCount;
 			}
 			if (charCount == 0) {
-				charCount = 5;
+				charCount = 6;
 			}
 
 			// redo the existing characters, or fill in charCount
@@ -629,7 +629,7 @@ var asIsHTML = `
 			<td colspan="%d">Use as-is: <input type="checkbox" name="w%dasis" id="w%dasis" %s></td>
 `
 var addLetterHTML = `
-			<td><input type="button" name="w%db" value="Add letter" onclick="addletter(%d)" /></td>
+			<td></td><td><input type="button" name="w%db" value="Add letter" onclick="addletter(%d)" /></td>
 		</tr>
 `
 
