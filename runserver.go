@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -8,14 +9,19 @@ import (
 	"jumble/srvr"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
 	dictionaryFileName := flag.String("d", "/usr/share/dict/words", "file name full of words")
+	stopWordsFileName := flag.String("s", "", "file name full of words to ignore in dictionaries")
 	portString := flag.String("p", "8012", "TCP port on which to listen")
 	debug := flag.Bool("v", false, "verbose output per request")
+	dump := flag.Bool("D", false, "dump final dictionary on stdout")
 	flag.Parse()
+
+	stopWords := readStopWords(*stopWordsFileName)
 
 	buffer, err := ioutil.ReadFile(*dictionaryFileName)
 	if err != nil {
@@ -23,8 +29,14 @@ func main() {
 	}
 
 	before := time.Now()
-	dict := dictionary.Build(buffer)
+	dict := dictionary.Build(buffer, stopWords)
 	dict.Dedupe()
+
+	if *dump {
+		dict.Dump(os.Stdout)
+		return
+	}
+
 	fmt.Printf("Dictionary file %s has %d keys, construction %v\n", *dictionaryFileName, len(dict), time.Since(before))
 
 	srv := &srvr.Srvr{
@@ -47,4 +59,31 @@ func main() {
 
 	log.Fatal(s.ListenAndServe())
 
+}
+
+// readStopWords has the name of a file as its formal argument,
+// returns a map of strings to bool, if a string appears,
+// don't put it in the dictionary.
+func readStopWords(stopWordsFileName string) map[string]bool {
+
+	if stopWordsFileName == "" {
+		return make(map[string]bool)
+	}
+
+	buffer, err := ioutil.ReadFile(stopWordsFileName)
+	if err != nil {
+		log.Fatalf("Problem reading stop words file %q: %v\n", stopWordsFileName, err)
+	}
+
+	lines := bytes.Split(buffer, []byte{'\n'})
+
+	removes := make(map[string]bool)
+	for i := range lines {
+		if len(lines[i]) == 0 {
+			continue
+		}
+		removes[string(lines[i])] = true
+	}
+
+	return removes
 }
