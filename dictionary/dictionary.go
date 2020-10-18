@@ -2,6 +2,8 @@ package dictionary
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"sort"
 	"strings"
 )
@@ -12,11 +14,14 @@ type Dictionary map[string][]string
 // Build fills in a Dictionary from a buffer, which
 // should constitute all the lines from a file of words,
 // one word per line.
-func Build(buffer []byte) Dictionary {
+func Build(buffer []byte, stopWords map[string]bool) Dictionary {
 	dict := Dictionary(make(map[string][]string))
 	lines := bytes.Fields(buffer)
 	for _, word := range lines {
 		if w, a, saveit := Alphabetizer([]rune(string(word))); saveit {
+			if stopWords[w] {
+				continue
+			}
 			if _, ok := dict[a]; ok {
 				dict[a] = append(dict[a], string(w))
 				continue
@@ -27,6 +32,12 @@ func Build(buffer []byte) Dictionary {
 		}
 	}
 	return dict
+}
+
+func (dict Dictionary) Dump(w io.Writer) {
+	for alphabetized, word := range dict {
+		fmt.Fprintf(w, "%s\t%s\n", alphabetized, word)
+	}
 }
 
 // Dedupe eliminates duplicate words from list of words that
