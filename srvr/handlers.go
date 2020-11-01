@@ -70,7 +70,7 @@ func (s *Srvr) handleIndex() http.HandlerFunc {
 			fmt.Printf("Enter handleIndex closure\n")
 			defer fmt.Printf("Exit handleIndex closure\n")
 		}
-		w.Write([]byte(indexHTML))
+		fmt.Fprintf(w, indexHTML)
 	}
 }
 
@@ -338,14 +338,14 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 	fmt.Fprintf(w, headerHTML, len(words))
 
 	for wordNumber, word := range words {
-		w.Write([]byte("	<table border='1'>\n"))
+		fmt.Fprintf(w, "	<table border='1'>\n")
 
 		// Characters in word
 		fmt.Fprintf(w, "		<tr id='w%drow'>\n", wordNumber)
 		for charNumber, char := range word.Word {
 			fmt.Fprintf(w, characterHTML, wordNumber, charNumber, wordNumber, charNumber, char, wordNumber, charNumber)
 		}
-		w.Write([]byte("		</tr>\n"))
+		fmt.Fprintf(w, "		</tr>\n")
 
 		// Marks for characters to carry forward
 		fmt.Fprintf(w, "		<tr id='w%dmarks'>\n", wordNumber)
@@ -361,7 +361,7 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 
 			fmt.Fprintf(w, markHTML, wordNumber, charNumber, wordNumber, charNumber, checked)
 		}
-		w.Write([]byte("		</tr>\n"))
+		fmt.Fprintf(w, "		</tr>\n")
 
 		// Use-as-is flag
 		checked := ""
@@ -374,67 +374,68 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 		// words that might match
 		fmt.Fprintf(w, "\t\t<tr>\n\t\t\t<td colspan=%d>%s</td>\n\t\t</tr>\n", len(word.Word), strings.Join(matches[wordNumber], ", "))
 
-		w.Write([]byte("	</table>\n"))
+		fmt.Fprintf(w, "	</table>\n")
 	}
 
-	w.Write([]byte(footerHTML))
+	fmt.Fprintf(w, footerHTML)
 }
 
 func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, finalcount int, finalsizes []int) {
-	w.Write([]byte(solveHTML))
-	w.Write([]byte("<h3>Possible multi-word solutions</h3>\n"))
+	fmt.Fprintf(w, solveHTML)
+	fmt.Fprintf(w, "<h3>Possible multi-word solutions</h3>\n")
 	keyCombos := solver.GenerateKeyCombos(alternates, finalcount, finalsizes)
 	multiWordSolutions := solver.SolutionsFromKeyCombos(keyCombos, s.FindWords)
+	fmt.Fprintf(w, "<h4>%d solutions</h4>\n", len(multiWordSolutions))
 	sort.Sort(StringSliceSlice(multiWordSolutions))
 	for _, solution := range multiWordSolutions {
 		fmt.Fprintf(w, "<p>%s</p>\n", strings.Join(solution, " "))
 	}
-	w.Write([]byte(solveHTML2))
+	fmt.Fprintf(w, solveHTML2)
 }
 
 func (s *Srvr) singleWordSolution(w http.ResponseWriter, alternates [][]rune) {
 
-	w.Write([]byte(solveHTML))
-	w.Write([]byte("<h4>Possible Alternates</h4>\n<table border='1'>\n"))
+	fmt.Fprintf(w, solveHTML)
+	fmt.Fprintf(w, "<h4>Possible Alternates</h4>\n<table border='1'>\n")
 	for _, alternate := range alternates {
 		fmt.Fprintf(w, "\t<tr><td>%s</td></tr>\n", string(alternate))
 	}
-	w.Write([]byte("</table>\n"))
+	fmt.Fprintf(w, "</table>\n")
 
 	uniquematches := solver.FindUniqueMatches(alternates, s.FindWords)
 
 	fmt.Fprintf(w, "<h2>Found %d unique keys</h2>\n", len(uniquematches))
 
-	w.Write([]byte("<h2>Possible Unique Single Word Solutions</h2>\n"))
+	fmt.Fprintf(w, "<h2>Possible Unique Single Word Solutions</h2>\n")
 	for key, matches := range uniquematches {
 		if len(matches) > 0 {
 			fmt.Fprintf(w, "<h4>Key %q</h4>\n<pre>", key)
 			for _, match := range matches {
 				fmt.Fprintf(w, "%s\n", match)
 			}
-			w.Write([]byte("</pre>\n"))
+			fmt.Fprintf(w, "</pre>\n")
 		}
 	}
 
-	w.Write([]byte(solveHTML2))
+	fmt.Fprintf(w, solveHTML2)
 }
 
 func noWordsHTML(w http.ResponseWriter) {
 	fmt.Fprintf(w, headerHTML, 1)
-	w.Write([]byte("	<table border='1'>\n"))
-	w.Write([]byte("		<tr id='w0row'>\n"))
+	fmt.Fprintf(w, "	<table border='1'>\n")
+	fmt.Fprintf(w, "		<tr id='w0row'>\n")
 	for charNumber := 0; charNumber < 6; charNumber++ {
 		fmt.Fprintf(w, emptyCharacterHTML, charNumber, charNumber, 0, charNumber)
 	}
-	w.Write([]byte("		</tr>\n"))
-	w.Write([]byte("		<tr id='w0marks'>\n"))
+	fmt.Fprintf(w, "		</tr>\n")
+	fmt.Fprintf(w, "		<tr id='w0marks'>\n")
 	for charNumber := 0; charNumber < 6; charNumber++ {
 		fmt.Fprintf(w, emptyMarkHTML, charNumber, charNumber)
 	}
 	fmt.Fprintf(w, asIsHTML, 4, 0, 0, "")
 	fmt.Fprintf(w, addLetterHTML, 0, 0)
-	w.Write([]byte("		</tr>\n	</table>\n"))
-	w.Write([]byte(footerHTML))
+	fmt.Fprintf(w, "		</tr>\n	</table>\n")
+	fmt.Fprintf(w, footerHTML)
 }
 
 var headerHTML = `<!DOCTYPE html>
