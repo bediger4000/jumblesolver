@@ -23,13 +23,20 @@ validate user input.
 It is a security risk of unknown magnitude.
 
 ```sh
-$ ./runserver -d /usr/share/dict/words
+$ ./runserver -d /usr/share/dict/words -s stopwords.dat
 ```
 
 The file specified with "-d" is a text file,
 one word per line.
-You'll have to access it with a URL like `http://localhost:8012/jumble`
+This is the dictionary,
+the words the server will choose from to solve the puzzle.
 
+The file specified with "-s" is a text file,
+one word per line.
+These are "stop words",
+words that won't be considered in solving the puzzle.
+
+You'll have to access the server with a URL like `http://localhost:8012/jumble`
 
 ## Design and Algorithm
 
