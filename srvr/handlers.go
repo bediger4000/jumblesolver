@@ -615,10 +615,13 @@ var footerHTML = `
 	</div>
 	<input type="button" value="Unjumble Words" onclick="submitjumble()" />
 	<br />
-	<input type="submit" value="Solve" onclick="submitsolve()" />
 	<br />
 	<p>Solution words: <input type="text" id="soluWrdCnt" name="soluWrdCnt" size="1" /></p>
 	<p>Solution sizes: <input type="text" id="soluWrdSz"  name="soluWrdSz" size="8" /></p>
+	<br />
+	<input type="submit" value="Solve" onclick="submitsolve()" />
+	<br />
+	<br />
 	<br />
 	<input type="submit" value="Reset" onclick="submitreset()" />
 	</form>
