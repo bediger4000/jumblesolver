@@ -89,12 +89,19 @@ func (s *Srvr) handleSolve() http.HandlerFunc {
 			fmt.Fprintf(w, errorHTML, err)
 			return
 		}
+		for i, alts := range alternates {
+			if len(alts) == 0 {
+				fmt.Fprintf(w, errorHTML, fmt.Errorf("no letters at position %d", i))
+				return
+			}
+		}
 
 		if s.Debug {
 			fmt.Printf("%d letters in solution\n", len(alternates))
 			for _, alts := range alternates {
 				fmt.Printf("%v\n", alts)
 			}
+			fmt.Printf("%d final words\n", finalwords)
 		}
 
 		if finalwords == 1 {
@@ -188,6 +195,17 @@ func readSolveData(dict dictionary.Dictionary, r *http.Request, debug bool) ([][
 	// Each of those markedCount may have more than 1 alternative.
 
 	matches := solver.LookupWords(dict, words)
+	if debug {
+		fmt.Printf("%d elements in matches array\n", len(matches))
+		for i, match := range matches {
+			fmt.Printf("\tjumbled word %d has %d matches\n", i, len(match))
+		}
+	}
+	for i, match := range matches {
+		if len(match) == 0 {
+			return nil, 0, nil, fmt.Errorf("no unjumbled word at position %d", i)
+		}
+	}
 
 	jumbledChars := make([][]rune, markedCount)
 	jumbledCharNum := 0
