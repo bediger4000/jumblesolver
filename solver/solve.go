@@ -1,10 +1,10 @@
 package solver
 
 import (
-	"jumble/runenumber"
-	"jumble/stringnumber"
+	"jumblesolver/runenumber"
+	"jumblesolver/stringnumber"
 
-	"jumble/dictionary"
+	"jumblesolver/dictionary"
 )
 
 // LookupWords finds a []string for each solver.Word in its input,

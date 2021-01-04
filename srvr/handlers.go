@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"jumble/dictionary"
-	"jumble/solver"
+	"jumblesolver/dictionary"
+	"jumblesolver/solver"
 )
 
 var indexHTML = `

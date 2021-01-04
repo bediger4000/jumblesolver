@@ -1,7 +1,7 @@
 package srvr
 
 import (
-	"jumble/dictionary"
+	"jumblesolver/dictionary"
 	"net/http"
 )
 
