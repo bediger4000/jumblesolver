@@ -399,6 +399,17 @@ func rewriteHTML(words []solver.Word, matches [][]string, w http.ResponseWriter)
 }
 
 func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, finalcount int, finalsizes []int) {
+	if s.Debug {
+		fmt.Printf("Enter multiWordSolution, %d solution words, %v\nAlternates:\n", finalcount, finalsizes)
+		defer fmt.Printf("Exit multiWordSolution\n")
+	}
+
+	fmt.Fprintf(w, "<h4>Possible Alternates</h4>\n<table border='1'>\n")
+	for _, alternate := range alternates {
+		fmt.Fprintf(w, "\t<tr><td>%s</td></tr>\n", string(alternate))
+	}
+	fmt.Fprintf(w, "</table>\n")
+
 	fmt.Fprintf(w, solveHTML)
 	fmt.Fprintf(w, "<h3>Possible multi-word solutions</h3>\n")
 	keyCombos := solver.GenerateKeyCombos(alternates, finalcount, finalsizes)
