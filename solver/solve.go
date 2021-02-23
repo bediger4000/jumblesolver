@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"fmt"
 	"jumblesolver/runenumber"
 	"jumblesolver/stringnumber"
 
@@ -110,24 +111,30 @@ func FindUniqueMatches(alternates [][]rune, dict dictionary.Dictionary) map[stri
 // GenerateKeyCombos creates all the key (character-alphabetized string) combinations,
 // based on the sets of letters promoted from the unjumbled words, the number and
 // lengths of words in the final solution.
-func GenerateKeyCombos(alternates [][]rune, finalcount int, finalsizes []int) [][][]rune {
+func GenerateKeyCombos(debug bool, alternates [][]rune, finalcount int, finalsizes []int) [][][]rune {
+
+	if debug {
+		fmt.Printf("Enter GenerateKeyCombos\n")
+		defer fmt.Printf("Exit GenerateKeyCombos\n")
+	}
 
 	// func generateKeys uses len of finalsizes to know when to
 	// stop recursing.
 	finalsizes = fixSizes(len(alternates), finalsizes)
+	fmt.Printf("finalsizes = %d\n", finalsizes)
 
 	var keyCombos [][][]rune
 
 	keyList := CreateKeys(alternates)
 	for _, key := range keyList {
-		keycandidates := generateKeyCombos(key, finalsizes)
+		keycandidates := generateKeyCombos(debug, key, finalsizes)
 		keyCombos = append(keyCombos, keycandidates...)
 	}
 
 	return keyCombos
 }
 
-func generateKeyCombos(wholeKey []rune, sizes []int) [][][]rune {
+func generateKeyCombos(debug bool, wholeKey []rune, sizes []int) [][][]rune {
 
 	if len(sizes) == 1 {
 		return [][][]rune{[][]rune{wholeKey}}
@@ -145,7 +152,7 @@ func generateKeyCombos(wholeKey []rune, sizes []int) [][][]rune {
 
 		// subcandidates is an array of []rune, each []rune is a piece of wholeKey
 		// made out of candidate[1] base on the rest of sizes[]
-		subcandidates := generateKeyCombos(candidate[1], sizes[1:])
+		subcandidates := generateKeyCombos(debug, candidate[1], sizes[1:])
 
 		// join candidate[0] and each []rune in subcandidate - keyCandidates()
 		// should have only given us unique candidate[] sub-arrays
@@ -181,7 +188,12 @@ func sumarray(array []int) int {
 // SolutionsFromKeyCombos does the work of finding multi-word solutions
 // from the keyCombos, which are alphabetized keys that fit the lengths
 // and number of final solution words.
-func SolutionsFromKeyCombos(keyCombos [][][]rune, dict dictionary.Dictionary) [][]string {
+func SolutionsFromKeyCombos(debug bool, keyCombos [][][]rune, dict dictionary.Dictionary) [][]string {
+	if debug {
+		fmt.Printf("Enter SolutionsFromKeyCombos\n")
+		defer fmt.Printf("Exit SolutionsFromKeyCombos\n")
+	}
+
 	var solutions [][]string
 
 	for _, candidate := range keyCombos {
