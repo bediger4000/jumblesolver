@@ -412,8 +412,11 @@ func (s *Srvr) multiWordSolution(w http.ResponseWriter, alternates [][]rune, fin
 
 	fmt.Fprintf(w, solveHTML)
 	fmt.Fprintf(w, "<h3>Possible multi-word solutions</h3>\n")
-	keyCombos := solver.GenerateKeyCombos(alternates, finalcount, finalsizes)
-	multiWordSolutions := solver.SolutionsFromKeyCombos(keyCombos, s.FindWords)
+	keyCombos := solver.GenerateKeyCombos(s.Debug, alternates, finalcount, finalsizes)
+	if s.Debug {
+		fmt.Printf("multi-word solutions %d keyCombos\n", len(keyCombos))
+	}
+	multiWordSolutions := solver.SolutionsFromKeyCombos(s.Debug, keyCombos, s.FindWords)
 	fmt.Fprintf(w, "<h4>%d solutions</h4>\n", len(multiWordSolutions))
 	sort.Sort(StringSliceSlice(multiWordSolutions))
 	for _, solution := range multiWordSolutions {
