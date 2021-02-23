@@ -22,6 +22,7 @@ func main() {
 	flag.Parse()
 
 	stopWords := readStopWords(*stopWordsFileName)
+	fmt.Printf("Stop words file %s has %d entries\n", *stopWordsFileName, len(stopWords))
 
 	buffer, err := ioutil.ReadFile(*dictionaryFileName)
 	if err != nil {
