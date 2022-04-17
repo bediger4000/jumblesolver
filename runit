@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eou pipefail
+
+# Example invocation
+./runserver -d /usr/share/dict/words -s ./stopwords.dat
