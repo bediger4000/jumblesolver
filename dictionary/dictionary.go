@@ -34,6 +34,9 @@ func Build(buffer []byte, stopWords map[string]bool) Dictionary {
 	return dict
 }
 
+// Dump method allows human-readable output of alphabetized-word-keys,
+// and the corresponding values, word lists. There's a command line flag
+// that ends up invoking this.
 func (dict Dictionary) Dump(w io.Writer) {
 	for alphabetized, word := range dict {
 		fmt.Fprintf(w, "%s\t%s\n", alphabetized, word)
