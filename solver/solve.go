@@ -121,7 +121,9 @@ func GenerateKeyCombos(debug bool, alternates [][]rune, finalcount int, finalsiz
 	// func generateKeys uses len of finalsizes to know when to
 	// stop recursing.
 	finalsizes = fixSizes(len(alternates), finalsizes)
-	fmt.Printf("finalsizes = %d\n", finalsizes)
+	if debug {
+		fmt.Printf("finalsizes = %d\n", finalsizes)
+	}
 
 	var keyCombos [][][]rune
 
