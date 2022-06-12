@@ -35,6 +35,18 @@ The file specified with "-s" is a text file,
 one word per line.
 These are "stop words",
 words that won't be considered in solving the puzzle.
+This repo includes a `stopwords.dat` file,
+but its contents aren't the usual, very common short words
+that a stopwords list usually has.
+It contains a mix of words that the Linux `words` file has,
+but aren't English, like "viii", or "ct"
+`viii` and a few other strings 
+are Roman Numerals often used to number introductions to books. 
+`ct` and others are US postal state abbreviations.
+The `words` file includes them because it's mainly used to get spellchecks correct.
+The other category of stop words include `spavined`, `damn`,
+English words that the Jumble authors won't use
+for fear of either offending or mystifying their audience.
 
 You'll have to access the server with a URL like `http://localhost:8012/jumble`
 
