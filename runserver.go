@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"jumblesolver/dictionary"
 	"jumblesolver/srvr"
 	"log"
@@ -24,7 +23,7 @@ func main() {
 	stopWords := readStopWords(*stopWordsFileName)
 	fmt.Printf("Stop words file %s has %d entries\n", *stopWordsFileName, len(stopWords))
 
-	buffer, err := ioutil.ReadFile(*dictionaryFileName)
+	buffer, err := os.ReadFile(*dictionaryFileName)
 	if err != nil {
 		log.Fatalf("Problem reading dictionary file %q: %v\n", *dictionaryFileName, err)
 	}
@@ -71,7 +70,7 @@ func readStopWords(stopWordsFileName string) map[string]bool {
 		return make(map[string]bool)
 	}
 
-	buffer, err := ioutil.ReadFile(stopWordsFileName)
+	buffer, err := os.ReadFile(stopWordsFileName)
 	if err != nil {
 		log.Fatalf("Problem reading stop words file %q: %v\n", stopWordsFileName, err)
 	}

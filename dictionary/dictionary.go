@@ -18,18 +18,18 @@ func Build(buffer []byte, stopWords map[string]bool) Dictionary {
 	dict := Dictionary(make(map[string][]string))
 	lines := bytes.Fields(buffer)
 	for _, word := range lines {
-		if w, a, saveit := Alphabetizer([]rune(string(word))); saveit {
-			if stopWords[w] {
-				continue
-			}
-			if _, ok := dict[a]; ok {
-				dict[a] = append(dict[a], string(w))
-				continue
-			}
-			words := make([]string, 1)
-			words[0] = string(w)
-			dict[a] = words
+		w, a, saveit := Alphabetizer([]rune(string(word)))
+		if !saveit {
+			continue
 		}
+		if stopWords[w] {
+			continue
+		}
+		if _, ok := dict[a]; ok {
+			dict[a] = append(dict[a], string(w))
+			continue
+		}
+		dict[a] = []string{string(w)}
 	}
 	return dict
 }
